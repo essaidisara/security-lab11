@@ -10,7 +10,7 @@
 
 Ce rapport documente la mise en oeuvre de techniques de bypass de detection de root sur une application Android volontairement vulnerable. L'objectif est de comprendre les mecanismes de protection Java et natifs, puis de les neutraliser a l'aide de l'outil d'instrumentation dynamique Frida.
 
-> Ce travail est realise dans un cadre strictement pedagogique, sur une application de test prevue a cet effet.
+
 
 ---
 
@@ -18,7 +18,7 @@ Ce rapport documente la mise en oeuvre de techniques de bypass de detection de r
 
 
 
-## Livrable 1 — Verification de l'installation (20 pts)
+## Livrable 1 — Verification de l'installation 
 
 Les trois commandes suivantes confirment que l'environnement est correctement configure :
 
@@ -29,14 +29,15 @@ adb devices
 ```
 
 > **Sortie terminal :**
-<img width="934" height="107" alt="image" src="https://github.com/user-attachments/assets/968683dc-92df-4d6b-aaf9-a16e09c51827" />
+<img width="479" height="148" alt="image" src="https://github.com/user-attachments/assets/61a30a9c-2cc2-40db-9a70-1ca646e4e613" />
+
 
 
 > ```
 
 ---
 
-## Livrable 2 — Demarrage de frida-server et visibilite (30 pts)
+## Livrable 2 — Demarrage de frida-server et visibilite 
 
 ### Deploiement sur l'emulateur
 
@@ -48,7 +49,7 @@ adb shell "/data/local/tmp/frida-server -l 0.0.0.0"
 
 > **Sortie terminal :**
 > ```
-<img width="476" height="130" alt="image" src="https://github.com/user-attachments/assets/81abc3e8-5656-43f8-a854-a6a6a6bdb035" />
+<img width="460" height="140" alt="image" src="https://github.com/user-attachments/assets/52443997-8703-45d6-9ce1-8a3c6ec661ee" />
 
 > ```
 
@@ -60,7 +61,7 @@ frida-ps -Uai
 
 > **Liste des applications detectees  :**
 > ```
-<img width="476" height="409" alt="image" src="https://github.com/user-attachments/assets/54551b2e-480e-4b2b-bceb-6461433f3a28" />
+<img width="477" height="444" alt="image" src="https://github.com/user-attachments/assets/3496dbda-f75c-4ce3-aeac-5eb4d132e19d" />
 
 > ```
 
@@ -86,7 +87,7 @@ L'application utilise plusieurs techniques classiques au niveau de la JVM :
 
 ---
 
-## Livrable 3 — Bypass Java (30 pts)
+## Livrable 3 — Bypass Java 
 
 ### Etat initial — Detection active
 
@@ -100,26 +101,21 @@ L'application affiche une alerte et se ferme sans permettre aucune interaction.
 
 ### Approche A — Scripts de bypass generiques
 
-Cette premiere approche utilise des hooks Java larges pour couvrir les verifications les plus courantes, sans connaissance prealable du code de l'application.
+La commande frida -U -f owasp.mstg.uncrackable1 -l hook_abc.js -l bypass_root.js permet de lancer l’application cible sur l’émulateur et d’injecter des scripts Frida afin de contourner les mécanismes de détection de root.
 
-**Fichiers utilises :**
+L’exécution montre que l’application est correctement attachée par Frida (Spawned… Resuming main thread), ce qui confirme le bon fonctionnement de l’environnement.
 
-
-
- bypass_root.js : script Frida utilisé pour contourner les mécanismes de détection du root côté Java. Il modifie ou intercepte plusieurs contrôles courants, comme la valeur de Build.TAGS, les vérifications de fichiers sensibles avec File.exists, l’exécution de commandes système via Runtime.exec, ainsi que les appels à AlertDialog et System.exit afin d’empêcher l’application d’afficher une alerte ou de se fermer automatiquement.
-bypass_native.js : script destiné à intercepter les appels natifs effectués par l’application au niveau système. Il surveille et manipule des fonctions comme open, openat, access, stat et lstat, souvent utilisées pour vérifier l’existence de fichiers liés au root, à Magisk, à BusyBox ou à d’autres éléments suspects.
-anti_frida.js : script permettant de réduire les traces visibles de Frida pendant l’analyse dynamique. Il vise à masquer certains indicateurs utilisés par les applications pour détecter Frida, comme les variables d’environnement, les ports de communication, ou certains noms/processus associés à l’instrumentation.
+Les journaux indiquent que les méthodes a(), b() et c() de la classe sg.vantagepoint.a.c, identifiées comme responsables de la détection, ont été interceptées. Elles sont modifiées pour retourner systématiquement false, ce qui désactive la détection du root.
 **Commande d'execution :**
 
 ```bash
 frida -U -f owasp.mstg.uncrackable1 -l bypass_root.js -l bypass_native.js -l anti_frida.js
 ```
-
-**Journaux Frida observes :**
-
+<img width="1276" height="490" alt="image" src="https://github.com/user-attachments/assets/09dd707b-bae4-469d-8fe7-323032c3e61c" />
 ```
-```
-<img width="1491" height="1055" alt="image" src="https://github.com/user-attachments/assets/4f389f4d-0ff9-4a90-857f-0c1c5eb5e918" />
+
+
+
 
 ---
 
@@ -135,7 +131,8 @@ frida -U -f owasp.mstg.uncrackable1 -l enumerate_methods.js
 
 > **Sortie d'enumeration :**
 > ```
-<img width="527" height="324" alt="image" src="https://github.com/user-attachments/assets/9dd436fa-a099-4674-a32d-8f5852625310" />
+<img width="589" height="215" alt="image" src="https://github.com/user-attachments/assets/35e145a6-13fc-4130-a83b-134218da5482" />
+
 
 > ```
 
@@ -146,7 +143,8 @@ Les trois méthodes retournant des booléens correspondent aux mécanismes de d�
 ```bash
 frida -U -f owasp.mstg.uncrackable1 -l hook_abc.js -l bypass_root.js
 ```
-<img width="436" height="277" alt="image" src="https://github.com/user-attachments/assets/b160b082-747c-4daf-bd0a-646497732a62" />
+<img width="605" height="246" alt="image" src="https://github.com/user-attachments/assets/e76cdf1f-ccc6-4c84-986c-8ce79f9fe388" />
+
 
 
 **resultat:**
