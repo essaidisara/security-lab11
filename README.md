@@ -1,210 +1,174 @@
-# Lab Frida — Root Detection Bypass
-## Rapport de livrables
+# Rapport de Lab — Contournement de la Detection de Root sur Android via Frida
 
-**Nom :**essaidi 
-**Date :** ___________________________  
-**Appareil Android :** ___________________________  
-**Version Android :** ___________________________
+**Module : Securite Mobile**  
+**Cible : OWASP UnCrackable Level 1** (`owasp.mstg.uncrackable1`)  
+
 
 ---
 
-## 1. Installation et preuve (20 pts)
+## Contexte et objectifs
 
-### 1.1 Version de Frida (PC)
+Ce rapport documente la mise en oeuvre de techniques de bypass de detection de root sur une application Android volontairement vulnerable. L'objectif est de comprendre les mecanismes de protection Java et natifs, puis de les neutraliser a l'aide de l'outil d'instrumentation dynamique Frida.
 
-```bash
- frida --version
-```
-
-> **Sortie obtenue :**
-> ```
-<img width="473" height="55" alt="image" src="https://github.com/user-attachments/assets/5a1546ed-4bbb-404f-8511-c288a447cb58" />
-
-> ```
+> Ce travail est realise dans un cadre strictement pedagogique, sur une application de test prevue a cet effet.
 
 ---
 
-### 1.2 Version du module Python Frida
+
+
+
+
+## Livrable 1 — Verification de l'installation (20 pts)
+
+Les trois commandes suivantes confirment que l'environnement est correctement configure :
 
 ```bash
+frida --version
 python -c "import frida; print(frida.__version__)"
+adb devices
 ```
 
-> **Sortie obtenue :**
-> ```
-<img width="466" height="45" alt="image" src="https://github.com/user-attachments/assets/2359328c-eebb-4f94-bbe7-cb1bddfab973" />
+> **Sortie terminal :**
+<img width="934" height="107" alt="image" src="https://github.com/user-attachments/assets/968683dc-92df-4d6b-aaf9-a16e09c51827" />
+
 
 > ```
 
 ---
 
-### 1.3 Appareils ADB détectés
+## Livrable 2 — Demarrage de frida-server et visibilite (30 pts)
+
+### Deploiement sur l'emulateur
 
 ```bash
- adb devices
-```
-
-> **Sortie obtenue :**
-> ```
- <img width="812" height="95" alt="image" src="https://github.com/user-attachments/assets/f18a14b6-3b19-4faa-b662-4c5438b751b7" />
-
-> ```
-
-`
-
----
-
-## 2. Déploiement et visibilité 
-
-### 2.1 Lancement de frida-server sur l'appareil
-
-Commandes exécutées :
-
-```bash
-adb push frida-server /data/local/tmp/
+adb push "frida-server-17.9.1-android-x86_64" /data/local/tmp/frida-server
 adb shell chmod 755 /data/local/tmp/frida-server
 adb shell "/data/local/tmp/frida-server -l 0.0.0.0"
 ```
 
-> **Capture d'écran ou sortie terminal :**
->
-<img width="944" height="188" alt="image" src="https://github.com/user-attachments/assets/9f97cc02-5df0-4152-a89a-95722a0114b6" />
-
----
-
-### 2.2 Listing des apps avec frida-ps
-
-```bash
- frida-ps -Uai
-```
-
->
-<img width="686" height="306" alt="image" src="https://github.com/user-attachments/assets/54c5b5fa-a9a8-4d97-bac8-6b99a3165e5e" />
+> **Sortie terminal :**
+> ```
+<img width="476" height="130" alt="image" src="https://github.com/user-attachments/assets/81abc3e8-5656-43f8-a854-a6a6a6bdb035" />
 
 > ```
 
->  frida-server opérationnel
-
----
-
-
-
-## 3. Bypass Java (30 pts)
-
-### 3.1 Application cible
-
-| Champ | Valeur |
-|---|---|
-| Nom de l'app | UnCrackable Level 1 (OWASP MSTG) |
-| Package | `owasp.mstg.uncrackable1` |
-| Script utilisé | `bypass_root.js` |
-
-### 3.2 Avant le bypass — Root détecté
-
-> **Capture d'écran de l'app affichant "Root detected" :**
->
-> `[INSÉRER CAPTURE AVANT ICI]`
-
----
-
-### 3.3 Commande de lancement Frida
+### Confirmation de la connexion Frida
 
 ```bash
-frida -U -f com.scottyab.rootbeer.sample -l bypass_root.js --no-pause
+frida-ps -Uai
 ```
 
----
-
-### 3.4 Logs Frida observés dans le terminal
-
-```
-[+] Hook Build.TAGS -> release-keys
-[+] RootBeer.isRooted -> false
-[+] File.exists bypass for /system/xbin/su
-[+] File.exists bypass for /system/bin/su
-[+] Hooks Runtime.exec installés
-[+] Java layer bypass installed
-[COLLER LES LOGS RÉELS ICI]
-```
-
----
-
-### 3.5 Après le bypass — Root non détecté
-
-> **Capture d'écran de l'app affichant "Not rooted" :**
->
- <img width="254" height="380" alt="image" src="https://github.com/user-attachments/assets/a0187000-7cb5-4963-82e7-e57b4ef032cb" />
-
-
-
----
-
-## 4. Natif / Trace (20 pts)
-
-### 4.1 Identification des appels natifs avec frida-trace
-
-```bash
-frida-trace -U -i open -i access -i stat -i openat -i fopen -i readlink com.scottyab.rootbeer.sample
-```
-
-> **Sortie frida-trace (au moins 2 appels natifs liés au root check) :**
+> **Liste des applications detectees  :**
 > ```
-> [COLLER LA SORTIE frida-trace ICI]
-> Exemple attendu :
->   open("/system/xbin/su", ...)
->   access("/system/bin/busybox", ...)
+<img width="476" height="409" alt="image" src="https://github.com/user-attachments/assets/54551b2e-480e-4b2b-bceb-6461433f3a28" />
+
 > ```
 
 ---
 
-### 4.2 Appels natifs identifiés
+## Comment l'application detecte-t-elle le root ?
 
-| # | Fonction | Chemin consulté |
-|---|---|---|
-| 1 | `open` / `openat` | `/system/xbin/su` |
-| 2 | `access` | `/system/bin/busybox` |
-| ... | ... | ... |
+Avant de contourner les protections, il est utile de comprendre ce qu'elles font.
 
----
+### Protections implementees en Java
 
-### 4.3 Adaptation de bypass_native.js
+L'application utilise plusieurs techniques classiques au niveau de la JVM :
 
-Chemins ajoutés à la liste `SUS` si nécessaire :
+- **Verification de Build.TAGS** : sur un appareil rooté, cette propriete contient `test-keys` au lieu de `release-keys`.
+- **Verification de fichiers** : la methode `File.exists()` est appelee sur des chemins comme `/system/xbin/su` ou `/system/bin/busybox`.
+- **Execution de commandes shell** : `Runtime.exec()` est utilise pour tenter d'executer `su` ou `which su`.
 
-```javascript
-const SUS = [
-  '/system/bin/su', '/system/xbin/su', '/sbin/su', '/system/su',
-  '/system/bin/busybox', '/system/xbin/busybox',
-  // [AJOUTER ICI LES CHEMINS DÉCOUVERTS VIA frida-trace]
-];
-```
+### Protections au niveau natif (C/C++)
+
+- Appels systeme `open`, `openat`, `access`, `stat`, `lstat` sur des chemins suspects.
+- Lecture de `/proc/mounts` pour detecter des partitions montees en ecriture.
+- Detection de Frida par scan des ports 27042/27043.
 
 ---
 
-### 4.4 Lancement combiné
+## Livrable 3 — Bypass Java (30 pts)
+
+### Etat initial — Detection active
+
+> **Capture d'ecran montrant le popup "Root detected!" :**  
+<img width="194" height="344" alt="image" src="https://github.com/user-attachments/assets/a3040f82-c5be-475e-8680-020156eca5c6" />
+
+
+L'application affiche une alerte et se ferme sans permettre aucune interaction.
+
+---
+
+### Approche A — Scripts de bypass generiques
+
+Cette premiere approche utilise des hooks Java larges pour couvrir les verifications les plus courantes, sans connaissance prealable du code de l'application.
+
+**Fichiers utilises :**
+
+
+
+ bypass_root.js : script Frida utilisé pour contourner les mécanismes de détection du root côté Java. Il modifie ou intercepte plusieurs contrôles courants, comme la valeur de Build.TAGS, les vérifications de fichiers sensibles avec File.exists, l’exécution de commandes système via Runtime.exec, ainsi que les appels à AlertDialog et System.exit afin d’empêcher l’application d’afficher une alerte ou de se fermer automatiquement.
+bypass_native.js : script destiné à intercepter les appels natifs effectués par l’application au niveau système. Il surveille et manipule des fonctions comme open, openat, access, stat et lstat, souvent utilisées pour vérifier l’existence de fichiers liés au root, à Magisk, à BusyBox ou à d’autres éléments suspects.
+anti_frida.js : script permettant de réduire les traces visibles de Frida pendant l’analyse dynamique. Il vise à masquer certains indicateurs utilisés par les applications pour détecter Frida, comme les variables d’environnement, les ports de communication, ou certains noms/processus associés à l’instrumentation.
+**Commande d'execution :**
 
 ```bash
-frida -U -f com.scottyab.rootbeer.sample -l bypass_root.js -l bypass_native.js --no-pause
+frida -U -f owasp.mstg.uncrackable1 -l bypass_root.js -l bypass_native.js -l anti_frida.js
 ```
+
+**Journaux Frida observes :**
+
+```
+```
+<img width="1491" height="1055" alt="image" src="https://github.com/user-attachments/assets/4f389f4d-0ff9-4a90-857f-0c1c5eb5e918" />
 
 ---
 
-### 4.5 Logs [+] Blocked observés
+### Approche B — Hooks cibles sur les methodes obfusquees
 
-```
-[+] Hooked open
-[+] Hooked openat
-[+] Hooked access
-[+] Hooked stat
-[+] Hooked lstat
-[+] Blocked open on /system/xbin/su
-[+] Blocked access on /system/bin/busybox
-[COLLER LES LOGS RÉELS ICI]
+Cette seconde approche est plus precise : elle cible directement les methodes de detection identifiees par reverse engineering.
+
+**Etape 1 — Identification des methodes**
+
+```bash
+frida -U -f owasp.mstg.uncrackable1 -l enumerate_methods.js
 ```
 
->  Au moins 2 appels natifs bloqués et loggués avec `[+] Blocked ...`.
+> **Sortie d'enumeration :**
+> ```
+<img width="527" height="324" alt="image" src="https://github.com/user-attachments/assets/9dd436fa-a099-4674-a32d-8f5852625310" />
 
+> ```
+
+Les trois méthodes retournant des booléens correspondent aux mécanismes de détection implémentés par l’application. Elles ont été modifiées afin de renvoyer systématiquement false, ce qui permet de désactiver ces vérifications.
+
+**Etape 2 — Injection des hooks**
+
+```bash
+frida -U -f owasp.mstg.uncrackable1 -l hook_abc.js -l bypass_root.js
+```
+<img width="436" height="277" alt="image" src="https://github.com/user-attachments/assets/b160b082-747c-4daf-bd0a-646497732a62" />
+
+
+**resultat:**
+
+```
+désactivé la détection root
+empêché les crashs
+bloqué les alertes
+trompé l’application sur l’état du système)
+```
+
+### Etat final — Bypass reussi
+
+> **Capture d'ecran de l'application fonctionnelle :**  
+<img width="153" height="326" alt="image" src="https://github.com/user-attachments/assets/8d14ba59-6d73-41d2-86f5-46b43939027f" />
+
+Le rapport présente un laboratoire de sécurité mobile sur OWASP UnCrackable Level 1, visant à contourner la détection de root avec Frida. L’environnement est d’abord vérifié avec frida, python-frida et adb, puis frida-server est déployé sur l’émulateur Android et la connexion est confirmée avec frida-ps -Uai.
+
+L’application détecte le root via plusieurs mécanismes : vérification de Build.TAGS, recherche de fichiers comme su ou busybox, exécution de commandes shell, appels natifs comme open, access, stat, et détection possible de Frida via les ports standards.
+
+Deux approches de bypass sont utilisées. La première repose sur des scripts génériques (bypass_root.js, bypass_native.js, anti_frida.js) pour neutraliser les contrôles Java, natifs et les traces de Frida. La seconde approche est plus ciblée : elle identifie les méthodes obfusquées sg.vantagepoint.a.c.a(), b() et c(), puis les force à retourner false.
+
+Au final, la détection root est désactivée, les alertes sont bloquées, les fermetures forcées sont empêchées, et l’application devient fonctionnelle malgré l’environnement rooté.
 ---
 
-
----
